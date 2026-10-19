@@ -374,6 +374,153 @@ Admin → **Students** has the same key icon per row, plus a **Portal Credential
 
 Swagger UI is available at `/api/docs` when the server is running.
 
+## Deploying the Backend to Render
+
+### Prerequisites
+- The project pushed to a **GitHub repository** (Render deploys from Git)
+- A **MongoDB Atlas** cluster (free tier M0 is fine) — see step 1
+
+### Step 1 — Create the MongoDB Atlas database
+
+1. Go to <https://www.mongodb.com/atlas> → sign up → **Create a free cluster** (M0, any region — pick Singapore/India for lower latency)
+2. **Database Access** → *Add New Database User* → set a username + password → add the `readWriteAnyDatabase` role
+3. **Network Access** → *Add IP Address* → choose **Allow access from anywhere** (`0.0.0.0/0`) so Render can connect
+4. **Database** → *Connect* → choose the **Node.js** driver → copy the **SRV connection string**
+
+Your string will look like this (note the trailing parts that are required):
+
+```
+mongodb+srv://akshay:<db_password>@cluster0.i2vslhw.mongodb.net/sai_prasad_driving_school?retryWrites=true&w=majority
+                                                                    └─────────────┘  └────────────────────────────────────────┘
+                                                                    database name      required options
+```
+
+| Part | Value |
+|---|---|
+| `akshay` | your Atlas **Database Access** username |
+| `<db_password>` | the password for that user (URL-encode it if it contains `@ : / ? # [ ] %`) |
+| `cluster0.i2vslhw.mongodb.net` | your cluster host |
+| `sai_prasad_driving_school` | **database name** — add this after the host, it is missing from the copy button |
+| `?retryWrites=true&w=majority` | **required** for Atlas |
+
+> **Never commit this string.** It goes into Render's environment variables only.
+
+#### Test it locally first
+
+```bash
+cd server
+npm run test:db -- "mongodb+srv://akshay:YOUR_REAL_PASSWORD@cluster0.i2vslhw.mongodb.net/sai_prasad_driving_school?retryWrites=true&w=majority"
+```
+
+The script masks the password in its output and tells you exactly what went wrong:
+
+```
+Testing connection to: mongodb+srv://akshay:****@cluster0.i2vslhw.mongodb.net/...
+
+Connection SUCCESSFUL in 842 ms
+Host: cluster0.i2vslhw.mongodb.net
+Database: sai_prasad_driving_school
+
+Collections (0): (empty — fresh database, run the seed to populate it)
+
+OK — you can use this MONGODB_URI in Render.
+```
+
+Common failures it diagnoses:
+
+| Output | Meaning |
+|---|---|
+| `bad auth : authentication failed` | Wrong username or password, or the password needs URL-encoding |
+| `getaddrinfo ENOTFOUND` | Wrong host name — copy it again from Atlas |
+| `Server selection timed out` | Atlas **Network Access** is not set to `0.0.0.0/0` |
+
+### Step 2 — Create the Web Service on Render
+
+1. Go to <https://dashboard.render.com> → **New** → **Web Service** → connect your GitHub repo
+2. Fill in the settings:
+
+| Field | Value |
+|---|---|
+| **Name** | `sai-prasad-driving-school-api` |
+| **Region** | Singapore (or India) |
+| **Branch** | `main` |
+| **Root Directory** | `server` |
+| **Runtime** | Node |
+| **Build Command** | `npm ci --include=dev && npm run build` |
+| **Start Command** | `npm run start:prod` |
+| **Health Check Path** | `/api/health` |
+
+> **Why `--include=dev`?** `NODE_ENV=production` makes npm skip devDependencies, but `nest build` needs `@nestjs/cli`. `--include=dev` installs everything for the build step.
+
+*Or* use the **Blueprint**: Render → *New* → *Blueprint* → pick the repo → it reads `render.yaml` automatically.
+
+### Step 3 — Environment variables
+
+Render → your service → **Environment** → add these:
+
+| Key | Value |
+|---|---|
+| `MONGODB_URI` | Your Atlas SRV string from step 1 |
+| `JWT_SECRET` | A long random string — generate with `openssl rand -hex 32` |
+| `JWT_EXPIRES_IN` | `7d` |
+| `CLIENT_URL` | Your **deployed frontend URL**, e.g. `https://your-frontend.vercel.app` (comma-separate multiple) |
+| `BUSINESS_TIMEZONE` | `Asia/Kolkata` |
+| `RATE_LIMIT_MAX` | `200` |
+| `NODE_ENV` | `production` |
+
+> `CLIENT_URL` must exactly match the frontend origin or the browser will block API calls with a CORS error.
+
+Save → Render **redeploys automatically**.
+
+### Step 4 — Create the admin account
+
+Open the service's **Shell** tab and create your owner login:
+
+```bash
+npm run create-admin:prod -- --email owner@yourdomain.com --password "YourStrongPassword123"
+```
+
+### Step 5 — Seed demo data (optional)
+
+```bash
+npm run seed:prod
+```
+
+### Step 6 — Point the frontend at the new API
+
+The frontend bakes in the API URL at **build time**. Rebuild and redeploy it with:
+
+```env
+VITE_API_URL=https://sai-prasad-driving-school-api.onrender.com/api
+```
+
+After redeploying, verify:
+
+- `https://sai-prasad-driving-school-api.onrender.com/api/health` → `{ "status": "ok" }`
+- `https://sai-prasad-driving-school-api.onrender.com/api/docs` → Swagger UI
+- `https://sai-prasad-driving-school-api.onrender.com/api/settings/public` → your business details
+
+### Notes
+
+| Topic | Detail |
+|---|---|
+| **Free tier sleeping** | The free plan sleeps after 15 min idle, so the first request takes ~50 s. Use a paid `starter` plan for production, or hit `/api/health` periodically |
+| **Cold start** | Render gives you ~30 s to start. The app boots in ~2 s, so this is fine |
+| **Port** | Render injects `PORT`; the app binds to `0.0.0.0` automatically |
+| **Auto-deploy** | Every push to `main` triggers a rebuild. Set `autoDeploy: false` if you prefer manual deploys |
+| **Logs** | Render → your service → **Logs** shows the startup banner with allowed origins |
+| **Custom domain** | Render → *Settings* → *Custom Domains* → point `api.yourdomain.com` at it |
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `MongooseServerSelectionError` | Wrong SRV string, or Atlas IP not open | Re-copy the string; add `0.0.0.0/0` in Atlas Network Access |
+| `Invalid or expired token` on every request | Frontend still points at the old API | Rebuild the frontend with the new `VITE_API_URL` |
+| CORS error in the browser console | `CLIENT_URL` doesn't match the frontend origin | Copy the exact origin from the console message, including `https://` |
+| `Cannot find module 'ts-node'` | `NODE_ENV=production` during build | Use `npm ci --include=dev` in the Build Command |
+| Health check fails | App crashed on boot | Check the Render **Logs** tab |
+
 ## Production Deployment Checklist
 
 - [ ] Change `JWT_SECRET` to a strong random string

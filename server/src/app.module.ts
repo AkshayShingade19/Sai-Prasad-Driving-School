@@ -20,6 +20,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { DatabaseSeedModule } from './modules/seed/seed.module';
 import { StudentPortalModule } from './modules/student-portal/student-portal.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { StudentPortalModule } from './modules/student-portal/student-portal.mod
     AuditLogsModule,
     DatabaseSeedModule,
     StudentPortalModule,
+    HealthModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
