@@ -5,18 +5,22 @@ import { CreateCourseDto, UpdateCourseDto } from './dto/course.dto';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '../auth/roles.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../auth/public.decorator';
 
 @ApiTags('Courses')
 @Controller('courses')
 export class CoursesController {
   constructor(private coursesService: CoursesService) {}
 
+  // Public: the marketing site lists courses without a signed-in user.
+  @Public()
   @Get()
   @ApiOperation({ summary: 'List all courses' })
   async findAll(@Query('active') active?: string) {
     return this.coursesService.findAll(active !== undefined ? active === 'true' : undefined);
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get course by ID' })
   async findOne(@Param('id') id: string) {
