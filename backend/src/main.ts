@@ -27,13 +27,29 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
   // CORS — allow every configured frontend origin.
+  // When the frontend is reached through a tunnel the browser sees a single
+  // origin (the tunnel host) and the Vite proxy forwards /api here, so CORS is
+  // not even consulted. This list matters for direct API access (e.g. from
+  // another device on the LAN) and stays narrow on purpose.
   const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
 
+  const allowAll = allowedOrigins.includes('*');
+
   app.enableCors({
-    origin: allowedOrigins,
+    origin: allowAll
+      ? true
+      : (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+          // Same-origin / server-to-server requests have no Origin header.
+          if (!origin) return callback(null, true);
+          if (allowedOrigins.includes(origin)) return callback(null, true);
+          // Unknown origin: omit the CORS headers instead of raising an error.
+          // The browser then blocks it for cross-origin calls (correct), while
+          // same-origin traffic through the tunnel is unaffected.
+          return callback(null, false);
+        },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -49,11 +65,15 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  // Render injects PORT; must bind to 0.0.0.0 (not just localhost)
+  // Bind address.
+  // Default: 127.0.0.1 only. The Vite dev server proxies /api to this
+  // process on the same machine, so the backend does not need to listen on
+  // the LAN. Set BIND_ADDRESS=0.0.0.0 to expose it on your local network.
+  const bindAddress = process.env.BIND_ADDRESS || '127.0.0.1';
   const port = parseInt(process.env.PORT || '3000', 10);
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, bindAddress);
 
-  logger.log(`Server running on port ${port}`);
+  logger.log(`Server running on ${bindAddress}:${port}`);
   logger.log(`Swagger docs: /api/docs`);
   logger.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
 

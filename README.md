@@ -2,6 +2,22 @@
 
 A complete full-stack web application for managing a driving school, including student management, lesson scheduling, attendance tracking, demo bookings, service requests, and payment tracking.
 
+## Public HTTPS URL (Run From Your Own Desktop)
+
+Want to share the live app without deploying the code anywhere? See **[PUBLIC-URL.md](./PUBLIC-URL.md)**.
+
+```bat
+start-public-project.bat
+```
+
+This starts the backend, the frontend and a Cloudflare Tunnel, then prints a public
+`https://….trycloudflare.com` URL that works on any phone or laptop. Only the frontend port
+is published — the API is served through the same origin and MongoDB stays on `127.0.0.1`.
+
+```bat
+stop-public-project.bat
+```
+
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
@@ -14,7 +30,7 @@ A complete full-stack web application for managing a driving school, including s
 
 ```
 sai-prasad-driving-school/
-├── client/                 # React frontend
+├── frontend/                 # React frontend
 │   ├── src/
 │   │   ├── api/           # API client and endpoints
 │   │   ├── components/    # Shared components
@@ -25,7 +41,7 @@ sai-prasad-driving-school/
 │   │   │   └── admin/     # Admin dashboard pages
 │   │   └── App.tsx        # Router setup
 │   └── ...
-├── server/                 # NestJS backend
+├── backend/                 # NestJS backend
 │   ├── src/
 │   │   ├── modules/       # Feature modules
 │   │   │   ├── auth/      # Authentication
@@ -59,7 +75,7 @@ sai-prasad-driving-school/
 
 ```bash
 # Install server dependencies
-cd server
+cd backend
 npm install
 
 # Install client dependencies
@@ -69,7 +85,7 @@ npm install
 
 ### 2. Environment Variables
 
-Create a `.env` file in the `server/` directory:
+Create a `.env` file in the `backend/` directory:
 
 ```env
 PORT=3000
@@ -81,7 +97,7 @@ CLIENT_URL=http://localhost:5173
 RATE_LIMIT_MAX=100
 ```
 
-Create a `.env` file in the `client/` directory:
+Create a `.env` file in the `frontend/` directory:
 
 ```env
 VITE_API_URL=http://localhost:3000/api
@@ -94,7 +110,7 @@ Make sure MongoDB is running locally, or update `MONGODB_URI` to point to your M
 ### 4. Seed the Database
 
 ```bash
-cd server
+cd backend
 npm run seed
 ```
 
@@ -108,11 +124,11 @@ This creates:
 
 ```bash
 # Terminal 1 - Start backend
-cd server
+cd backend
 npm run start:dev
 
 # Terminal 2 - Start frontend
-cd client
+cd frontend
 npm run dev
 ```
 
@@ -195,7 +211,7 @@ These are stored in the `businessSettings` collection and can be edited from **A
 
 ## Replacing the Gallery Photos
 
-A photo gallery appears on the **About Us** page. Branded placeholder images are included so the site looks complete immediately. To use your real photos, overwrite these files in `client/public/images/`:
+A photo gallery appears on the **About Us** page. Branded placeholder images are included so the site looks complete immediately. To use your real photos, overwrite these files in `frontend/public/images/`:
 
 | File | Contents |
 |------|----------|
@@ -205,11 +221,11 @@ A photo gallery appears on the **About Us** page. Branded placeholder images are
 | `vehicle-front.jpg` | Training vehicle (front) |
 | `vehicle-rear.jpg` | Training vehicle (rear) |
 
-Recommended: 1400x900px landscape JPG, under 500KB each. Captions live in `client/src/components/OfficeGallery.tsx`.
+Recommended: 1400x900px landscape JPG, under 500KB each. Captions live in `frontend/src/components/OfficeGallery.tsx`.
 
 ## Photos & Video
 
-**Gallery photos** (About Us page) live in `client/public/images/`:
+**Gallery photos** (About Us page) live in `frontend/public/images/`:
 
 | File | Contents |
 |------|----------|
@@ -219,9 +235,9 @@ Recommended: 1400x900px landscape JPG, under 500KB each. Captions live in `clien
 | `vehicle-front.jpg` | Training vehicle (front) |
 | `vehicle-rear.jpg` | Training vehicle (rear) |
 
-To swap in new photos, replace these files using the **exact same filename**. Recommended: 1400x900px landscape JPG, under 300KB each. Captions are defined in `client/src/components/OfficeGallery.tsx`.
+To swap in new photos, replace these files using the **exact same filename**. Recommended: 1400x900px landscape JPG, under 300KB each. Captions are defined in `frontend/src/components/OfficeGallery.tsx`.
 
-**Hero video** (Home page + About page) lives in `client/public/video/`:
+**Hero video** (Home page + About page) lives in `frontend/public/video/`:
 
 | File | Usage |
 |------|-------|
@@ -229,7 +245,7 @@ To swap in new photos, replace these files using the **exact same filename**. Re
 | `hero-driving.mp4` | Fallback background video |
 | `demo-booking.mp4` | Book a Demo page — hero preview + "See Our Training in Action" section |
 
-The `HeroVideo` component (`client/src/components/HeroVideo.tsx`) accepts a list of sources and automatically falls back to the next one if a file fails to load — so you can drop in a replacement video without touching any code. Play/pause and mute controls are in the bottom-right of the hero.
+The `HeroVideo` component (`frontend/src/components/HeroVideo.tsx`) accepts a list of sources and automatically falls back to the next one if a file fails to load — so you can drop in a replacement video without touching any code. Play/pause and mute controls are in the bottom-right of the hero.
 
 **Compressing a video before adding it:** Large clips (e.g. 1440p at 6Mbps ≈ 19MB) are far too heavy for web. Re-encode to 720p with no audio track:
 
@@ -244,7 +260,7 @@ That reduced the demo clip from 19MB to 2.1MB with no visible quality loss. `ffm
 
 ## Design System
 
-The site uses a custom premium design system defined in `client/tailwind.config.js` and `client/src/index.css`.
+The site uses a custom premium design system defined in `frontend/tailwind.config.js` and `frontend/src/index.css`.
 
 **Typography**
 - Display / headings: **Plus Jakarta Sans** (600/700/800) — `font-display`
@@ -279,7 +295,7 @@ To rebrand, edit the `colors` block in `tailwind.config.js` and the `@layer comp
 
 ## 3D & Animation System
 
-A reusable motion layer lives in `client/src/components/` and `client/src/hooks/`.
+A reusable motion layer lives in `frontend/src/components/` and `frontend/src/hooks/`.
 
 ### Components
 
@@ -330,8 +346,8 @@ Attendance is scheduled against a **calendar day in the business timezone** (`As
 
 | Problem | Fix |
 |---------|-----|
-| `new Date().toISOString()` returns the **UTC** date — at 02:00 IST that is still the *previous* day, so "today" never matched the server | Client uses `todayLocal()` from `client/src/utils/date.ts` (local date parts, never UTC) |
-| Server filtering with `setHours(0,0,0,0)` uses the **server's** timezone — wrong if hosted in UTC (Vercel, AWS) | Server uses `businessDayRange()` / `businessDayFromString()` from `server/src/common/timezone.util.ts`, which resolve the business-timezone day explicitly |
+| `new Date().toISOString()` returns the **UTC** date — at 02:00 IST that is still the *previous* day, so "today" never matched the server | Client uses `todayLocal()` from `frontend/src/utils/date.ts` (local date parts, never UTC) |
+| Server filtering with `setHours(0,0,0,0)` uses the **server's** timezone — wrong if hosted in UTC (Vercel, AWS) | Server uses `businessDayRange()` / `businessDayFromString()` from `backend/src/common/timezone.util.ts`, which resolve the business-timezone day explicitly |
 
 Set `BUSINESS_TIMEZONE` in `.env` to change the business timezone.
 
@@ -408,7 +424,7 @@ mongodb+srv://akshay:<db_password>@cluster0.i2vslhw.mongodb.net/sai_prasad_drivi
 #### Test it locally first
 
 ```bash
-cd server
+cd backend
 npm run test:db -- "mongodb+srv://akshay:YOUR_REAL_PASSWORD@cluster0.i2vslhw.mongodb.net/sai_prasad_driving_school?retryWrites=true&w=majority"
 ```
 

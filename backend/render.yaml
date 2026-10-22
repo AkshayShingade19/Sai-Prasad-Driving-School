@@ -1,12 +1,12 @@
-# Render Blueprint — Sai Prasad Driving School API
+# Render Blueprint — Sai Prasad Driving School API (NestJS backend)
 #
 # Usage:
 #   1. Push this repo to GitHub
 #   2. Render Dashboard -> New -> Blueprint
 #   3. Select the repo, apply this blueprint
-#   4. Set MONGODB_URI and JWT_SECRET in the Render dashboard
+#   4. Set MONGODB_URI, JWT_SECRET and CLIENT_URL in the Render dashboard
 #
-# Or create a Web Service manually (see README for step-by-step).
+# The frontend is deployed separately on Vercel and proxies /api here.
 
 services:
   - type: web
@@ -14,7 +14,7 @@ services:
     runtime: node
     plan: free
     region: singapore
-    rootDir: server
+    rootDir: backend
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /api/health
@@ -32,8 +32,11 @@ services:
         value: Asia/Kolkata
       - key: RATE_LIMIT_MAX
         value: 200
+      - key: BIND_ADDRESS
+        value: 0.0.0.0
       # Set these in the Render dashboard (they contain your own values)
       - key: MONGODB_URI
         sync: false
+      # Comma-separated list of allowed frontend origins
       - key: CLIENT_URL
         sync: false
