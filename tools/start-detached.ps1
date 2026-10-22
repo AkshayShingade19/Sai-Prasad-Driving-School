@@ -72,13 +72,17 @@ $p3 = Start-Process -FilePath (Join-Path $tools 'cloudflared.exe') `
 Write-Host ('      pid {0}' -f $p3.Id)
 
 # ---- discover the public URL -------------------------------------------
+# cloudflared writes its banner to stderr, so scan BOTH streams.
 $url = $null
 for ($i = 0; $i -lt 30; $i++) {
   Start-Sleep -Seconds 2
-  if (Test-Path $tunnelLog) {
-    $m = Select-String -Path $tunnelLog -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' -AllMatches -ErrorAction SilentlyContinue
-    if ($m) { $url = ($m.Matches | Select-Object -First 1).Value; break }
+  foreach ($f in @($tunnelLog, $tunnelErr)) {
+    if (Test-Path $f) {
+      $m = Select-String -Path $f -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' -AllMatches -ErrorAction SilentlyContinue
+      if ($m) { $url = ($m.Matches | Select-Object -First 1).Value; break }
+    }
   }
+  if ($url) { break }
 }
 
 Write-Host ''

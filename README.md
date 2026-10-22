@@ -28,6 +28,19 @@ stop-public-project.bat
 
 ## Project Structure
 
+Two independently deployable apps:
+
+| Folder | Platform | Contents |
+|---|---|---|
+| `frontend/` | **Vercel** | React 18 + TypeScript + Vite + Tailwind — public website, admin dashboard, student portal |
+| `backend/` | **Render** | NestJS + Mongoose — REST API, JWT auth, attendance engine, Swagger docs |
+| `tools/` | — | Deployment + local-tunnel helper scripts |
+
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for the Vercel + Render walkthrough and
+**[PUBLIC-URL.md](./PUBLIC-URL.md)** to run it from your own desktop with a public URL.
+
+### Backend (`backend/`)
+
 ```
 sai-prasad-driving-school/
 ├── frontend/                 # React frontend
@@ -51,14 +64,20 @@ sai-prasad-driving-school/
 │   │   │   ├── instructors/
 │   │   │   ├── lessons/   # Lesson scheduling
 │   │   │   ├── attendance/ # Attendance system
+│   │   │   ├── student-portal/ # Student self-service portal
 │   │   │   ├── demo-bookings/
 │   │   │   ├── service-requests/
 │   │   │   ├── payments/
 │   │   │   ├── settings/
+│   │   │   ├── health/    # Health check endpoint
 │   │   │   └── audit-logs/
+│   │   ├── common/        # Timezone helpers
 │   │   ├── seed.ts        # Database seed script
 │   │   └── main.ts        # Server entry point
 │   └── ...
+├── tools/                  # Deploy + tunnel helper scripts
+├── DEPLOYMENT.md           # Vercel + Render guide
+├── PUBLIC-URL.md           # Local public-URL guide
 ├── .env.example
 └── README.md
 ```
